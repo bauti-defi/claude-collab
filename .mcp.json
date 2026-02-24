@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "claude-collab": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/claude-collab",
+      "args": ["join", "--url", "${COLLAB_URL}", "--name", "${COLLAB_NAME}"],
+      "env": {}
+    }
+  }
+}

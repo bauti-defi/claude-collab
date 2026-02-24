@@ -1,0 +1,5 @@
+{
+  "name": "claude-collab",
+  "version": "1.0.0",
+  "description": "LAN collaboration between Claude Code sessions via WebSocket"
+}
