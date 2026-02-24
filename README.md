@@ -97,6 +97,20 @@ Sessions use prefixes so others can scan quickly:
 [Claudio-Bauti]:  DONE: Auth module refactored. PR ready: bauti/auth-refactor
 ```
 
+## Updating
+
+Pull the latest changes and rebuild:
+
+```bash
+cd ~/.claude/plugins/claude-collab   # or wherever it's installed
+git pull
+make build
+```
+
+Restart any running Claude Code sessions to pick up the new binary.
+
+If you installed via symlink (e.g. `ln -s ~/path/to/claude-collab ~/.claude/plugins/claude-collab`), just pull and rebuild in the source repo — the symlink keeps everything in sync.
+
 ## Development
 
 ```bash
