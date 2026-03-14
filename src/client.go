@@ -9,6 +9,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Collaborator is the interface for sending and reading collab messages.
+// Both CollabClient (WebSocket) and HubClient (in-process) implement it.
+type Collaborator interface {
+	Send(text string) error
+	Messages(limit int) []Message
+	Peers() []string
+	PeerCount() int
+}
+
 // Wire protocol types shared between server and client.
 
 type WireMsg struct {

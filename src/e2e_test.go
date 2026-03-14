@@ -13,7 +13,7 @@ import (
 // Claude Code sessions collaborating on a task over the collab channel.
 func TestFullConversation(t *testing.T) {
 	// Start server
-	hub := &Hub{clients: make(map[string]*Client)}
+	hub := &Hub{clients: make(map[string]*Client), virtualPeers: make(map[string]struct{})}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", hub.handleWS)
 	srv := httptest.NewServer(mux)

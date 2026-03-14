@@ -16,7 +16,7 @@ import (
 // the server and its WebSocket URL. Caller must call server.Close().
 func startTestServer(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
-	hub := &Hub{clients: make(map[string]*Client)}
+	hub := &Hub{clients: make(map[string]*Client), virtualPeers: make(map[string]struct{})}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", hub.handleWS)
 	srv := httptest.NewServer(mux)
