@@ -11,13 +11,8 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// RunMCP connects to the collab server and starts the MCP stdio bridge.
-func RunMCP(wsURL, name string) error {
-	client, err := Connect(wsURL, name)
-	if err != nil {
-		return fmt.Errorf("connect: %w", err)
-	}
-
+// newMCPServer creates an MCP server backed by any Collaborator.
+func newMCPServer(client Collaborator) *server.MCPServer {
 	s := server.NewMCPServer(
 		"claude-collab",
 		"1.0.0",
@@ -27,6 +22,18 @@ func RunMCP(wsURL, name string) error {
 	s.AddTool(sendMessageTool(), sendMessageHandler(client))
 	s.AddTool(readMessagesTool(), readMessagesHandler(client))
 	s.AddTool(listPeersTool(), listPeersHandler(client))
+
+	return s
+}
+
+// RunMCP connects to the collab server and starts the MCP stdio bridge.
+func RunMCP(wsURL, name string) error {
+	client, err := Connect(wsURL, name)
+	if err != nil {
+		return fmt.Errorf("connect: %w", err)
+	}
+
+	s := newMCPServer(client)
 
 	fmt.Fprintf(os.Stderr, "claude-collab: connected as %q to %s\n", name, wsURL)
 	return server.ServeStdio(s)
@@ -44,7 +51,7 @@ func sendMessageTool() mcp.Tool {
 	)
 }
 
-func sendMessageHandler(client *CollabClient) server.ToolHandlerFunc {
+func sendMessageHandler(client Collaborator) server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		text, err := req.RequireString("text")
 		if err != nil {
@@ -71,7 +78,7 @@ func readMessagesTool() mcp.Tool {
 	)
 }
 
-func readMessagesHandler(client *CollabClient) server.ToolHandlerFunc {
+func readMessagesHandler(client Collaborator) server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		limit := req.GetInt("limit", 20)
 
@@ -96,7 +103,7 @@ func listPeersTool() mcp.Tool {
 	)
 }
 
-func listPeersHandler(client *CollabClient) server.ToolHandlerFunc {
+func listPeersHandler(client Collaborator) server.ToolHandlerFunc {
 	return func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		peers := client.Peers()
 		if len(peers) == 0 {

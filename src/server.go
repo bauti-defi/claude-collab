@@ -17,9 +17,10 @@ var upgrader = websocket.Upgrader{
 
 // Hub manages all connected clients and the shared message history.
 type Hub struct {
-	mu      sync.RWMutex
-	clients map[string]*Client
-	history []Message
+	mu           sync.RWMutex
+	clients      map[string]*Client
+	virtualPeers map[string]struct{} // in-process peers (e.g. MCP HTTP endpoint)
+	history      []Message
 }
 
 // Client represents a single WebSocket connection to the hub.
@@ -30,15 +31,29 @@ type Client struct {
 	hub  *Hub
 }
 
-// RunServer starts the WebSocket server on the given port.
-func RunServer(port int) error {
-	hub := &Hub{clients: make(map[string]*Client)}
+// RunServer starts the WebSocket server, web UI, and remote MCP endpoint.
+func RunServer(port int, mcpName string) error {
+	hub := &Hub{
+		clients:      make(map[string]*Client),
+		virtualPeers: make(map[string]struct{}),
+	}
 
-	http.HandleFunc("/ws", hub.handleWS)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ws", hub.handleWS)
+	mux.HandleFunc("/", serveWebUI)
+
+	// Remote MCP endpoint for claude.ai browser integration.
+	hubClient := NewHubClient(hub, mcpName)
+	mcpHandler := newMCPHTTPHandler(hubClient)
+	mux.Handle("/mcp", mcpHandler)
 
 	addr := fmt.Sprintf(":%d", port)
 	log.Printf("claude-collab host listening on %s", addr)
-	return http.ListenAndServe(addr, nil)
+	log.Printf("  web UI:       http://localhost:%d/", port)
+	log.Printf("  WebSocket:    ws://localhost:%d/ws", port)
+	log.Printf("  remote MCP:   http://localhost:%d/mcp", port)
+	log.Printf("  MCP peer:     %s", mcpName)
+	return http.ListenAndServe(addr, mux)
 }
 
 func (h *Hub) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -92,10 +107,14 @@ func (h *Hub) handleWS(w http.ResponseWriter, r *http.Request) {
 	client.readPump()
 }
 
-// peerNames returns all connected client names. Must be called with h.mu held.
+// peerNames returns all connected client names (WebSocket + virtual).
+// Must be called with h.mu held.
 func (h *Hub) peerNames() []string {
-	names := make([]string, 0, len(h.clients))
+	names := make([]string, 0, len(h.clients)+len(h.virtualPeers))
 	for name := range h.clients {
+		names = append(names, name)
+	}
+	for name := range h.virtualPeers {
 		names = append(names, name)
 	}
 	return names

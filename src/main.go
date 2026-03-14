@@ -16,16 +16,20 @@ func main() {
 	switch args[0] {
 	case "host":
 		port := 8080
+		mcpName := "claude-browser"
 		for i := 1; i < len(args)-1; i++ {
-			if args[i] == "--port" {
+			switch args[i] {
+			case "--port":
 				p, err := strconv.Atoi(args[i+1])
 				if err != nil {
 					fatal("invalid port: %s", args[i+1])
 				}
 				port = p
+			case "--name":
+				mcpName = args[i+1]
 			}
 		}
-		if err := RunServer(port); err != nil {
+		if err := RunServer(port, mcpName); err != nil {
 			fatal("server error: %v", err)
 		}
 
@@ -55,8 +59,11 @@ func usage() {
 	fmt.Fprintf(os.Stderr, `claude-collab — LAN collaboration for Claude Code sessions
 
 Usage:
-  claude-collab host [--port PORT]           Start WebSocket server (default: 8080)
-  claude-collab join --url URL --name NAME   Start MCP stdio client
+  claude-collab host [--port PORT] [--name NAME]   Start server (default: :8080, name: claude-browser)
+  claude-collab join --url URL --name NAME          Start MCP stdio client
+
+Host serves: WebSocket (/ws), web chat UI (/), remote MCP endpoint (/mcp)
+The --name flag sets the identity for the remote MCP endpoint (used by claude.ai).
 `)
 	os.Exit(1)
 }
